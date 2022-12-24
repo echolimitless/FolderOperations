@@ -2,7 +2,6 @@
 
 internal static class MoveToFolderOneLevelUp
 {
-    private static readonly char separator = Path.DirectorySeparatorChar;
     static void Main(string[] args)
     {
         Console.WriteLine("最下層のフォルダにあるファイルを一つ上の階層に移動します。");
@@ -19,10 +18,45 @@ internal static class MoveToFolderOneLevelUp
             Console.WriteLine("ファイルの移動を行います。");
             foreach (var targetFile in targetFileList)
             {
-                deleteDirectoryHashSet.Add(targetFile.DirectoryName!);
-                targetFile.MoveTo(targetFile.DirectoryName + "_" + targetFile.Name);
-                Console.WriteLine($"{targetFile.FullName} → {targetFile.DirectoryName + "_" + targetFile.Name}(ファイル移動)");
+                if (string.IsNullOrWhiteSpace(targetFile.DirectoryName))
+                {
+                    throw new NullReferenceException();
+                }
 
+                if (targetFile.Directory?.Parent == null)
+                {
+                    throw new NullReferenceException();
+                }
+
+                var a = targetFile.Directory.Name;
+
+                // 空になるディレクトリパスを保存
+                deleteDirectoryHashSet.Add(targetFile.DirectoryName);
+
+                // CDのアートファイルのため削除
+                if (targetFile.Extension == ".jpg")
+                {
+                    targetFile.Delete();
+                    continue;
+                }
+
+                var oldFileFullname = targetFile.FullName;
+                var newFileFullname = $"{targetFile.DirectoryName}_{targetFile.Name.Replace(".mp4", ".m4a")}";
+
+                // 親ディレクトリ名は20文字にする
+                if (targetFile.Directory.Name.Length > 20)
+                {
+                    newFileFullname = $"{Path.Combine(targetFile.Directory.Parent.FullName,targetFile.Directory.Name[..20])}…_{targetFile.Name.Replace(".mp4", ".m4a")}";
+
+                    // 親ディレクトリ名を短くしたので同名のファイルが作成されていたら連番を付けて同名ファイルが作成されるのを回避
+                    for (int i = 1; File.Exists(newFileFullname); i++)
+                    {
+                        newFileFullname = $"{Path.Combine(targetFile.Directory.Parent.FullName, targetFile.Directory.Name[..20])}…{i}_{targetFile.Name.Replace(".mp4", ".m4a")}";
+                    }
+                }
+
+                targetFile.MoveTo(newFileFullname);
+                Console.WriteLine($"{oldFileFullname} → {targetFile.FullName}(ファイル移動)");
             }
 
             Console.WriteLine("フォルダの削除を行います。");
